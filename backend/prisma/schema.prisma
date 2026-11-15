@@ -1,0 +1,1292 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Company {
+  id        String   @id @default(uuid())
+  name      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  users                 User[]
+  employees             Employee[]
+  customers             Customer[]
+  suppliers             Supplier[]
+  products              Product[]
+  materials             Material[]
+  salesOrders           SalesOrder[]
+  salesOrderItems       SalesOrderItem[]
+  boms                  BOM[]
+  bomItems              BomItem[]
+  operations            Operation[]
+  routings              Routing[]
+  routingOperations     RoutingOperation[]
+  purchaseOrders        PurchaseOrder[]
+  purchaseOrderItems    PurchaseOrderItem[]
+  goodsReceipts         GoodsReceipt[]
+  goodsReceiptItems     GoodsReceiptItem[]
+  stockMovements        StockMovement[]
+  productionOrders      ProductionOrder[]
+  productionConsumptions ProductionConsumption[]
+  finishedGoodsReceipts FinishedGoodsReceipt[]
+  productionBatches     ProductionBatch[]
+  wipLogs               WipLog[]
+  qualityInspections    QualityInspection[]
+  reworkJobs            ReworkJob[]
+  shipments             Shipment[]
+  shipmentItems         ShipmentItem[]
+  invoices              Invoice[]
+  invoiceItems          InvoiceItem[]
+  payments              Payment[]
+  expenses              Expense[]
+  attendances           Attendance[]
+  payrolls              Payroll[]
+  maintenanceRecords    MaintenanceRecord[]
+  product3dModels       Product3DModel[]
+  warehouses            Warehouse[]
+  variants              Variant[]
+  departments           Department[]
+  userDepartments       UserDepartment[]
+  auditLogs             AuditLog[]
+  userSessions          UserSession[]
+  companySettings       CompanySetting[]
+  rolePermissions       RolePermission[]
+}
+
+model Role {
+  id        String   @id @default(uuid())
+  name      String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  users User[]
+}
+
+model User {
+  id                  String   @id @default(uuid())
+  loginId             String?
+  email               String   @unique
+  name                String
+  password            String
+  isActive            Boolean  @default(true)
+  isTemporaryPassword Boolean  @default(false)
+  mustChangePassword  Boolean  @default(false)
+  lastLoginAt         DateTime?
+  
+  companyId           String
+  company             Company  @relation(fields: [companyId], references: [id])
+  
+  roleId              String
+  role                Role     @relation(fields: [roleId], references: [id])
+  
+  employees           Employee[]
+  assignedDepartments UserDepartment[]
+  sessions            UserSession[]
+  auditLogs           AuditLog[]
+
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+  
+  @@index([companyId])
+  @@unique([loginId, companyId])
+}
+
+model Employee {
+  id                 String   @id @default(uuid())
+  employeeCode       String
+  name               String
+  email              String?
+  phone              String?
+  department         String?
+  designation        String?
+  joiningDate        DateTime @default(now())
+  employmentType     String   @default("FULL_TIME") // FULL_TIME, PART_TIME, CONTRACT, TEMPORARY
+  salary             Float    @default(0)
+  status             String   @default("ACTIVE")    // ACTIVE, INACTIVE, ON_LEAVE
+  
+  userId             String?
+  user               User?    @relation(fields: [userId], references: [id])
+  
+  departmentId       String?
+  departmentRef      Department?  @relation("EmployeeDepartment", fields: [departmentId], references: [id])
+  headedDepartments  Department[] @relation("DepartmentHead")
+
+  companyId          String
+  company            Company  @relation(fields: [companyId], references: [id])
+  
+  attendances        Attendance[]
+  payrolls           Payroll[]
+
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  @@index([companyId])
+  @@index([userId])
+  @@index([departmentId])
+  @@unique([employeeCode, companyId])
+}
+
+model Customer {
+  id           String   @id @default(uuid())
+  name         String
+  customerCode String?
+  companyName  String?
+  email        String?
+  phone        String?
+  address      String?
+  city         String?
+  state        String?
+  country      String?
+  status       String   @default("ACTIVE")
+  
+  companyId    String
+  company      Company  @relation(fields: [companyId], references: [id])
+  
+  salesOrders  SalesOrder[]
+  shipments    Shipment[]
+  invoices     Invoice[]
+  payments     Payment[]
+  
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  
+  @@index([companyId])
+  @@unique([customerCode, companyId])
+}
+
+model Supplier {
+  id           String   @id @default(uuid())
+  name         String
+  supplierCode String?
+  companyName  String?
+  contact      String?
+  email        String?
+  phone        String?
+  address      String?
+  city         String?
+  state        String?
+  country      String?
+  status       String   @default("ACTIVE")
+  
+  companyId    String
+  company      Company  @relation(fields: [companyId], references: [id])
+  
+  purchaseOrders PurchaseOrder[]
+  goodsReceipts  GoodsReceipt[]
+  expenses       Expense[]
+  
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  
+  @@index([companyId])
+  @@unique([supplierCode, companyId])
+}
+
+model Product {
+  id                 String   @id @default(uuid())
+  productCode        String?
+  name               String
+  slug               String?
+  description        String?
+  sku                String?
+  category           String?
+  garmentType        String?
+  finishedGoodsStock Int?     @default(0)
+  status             String   @default("ACTIVE")
+  
+  companyId          String
+  company            Company  @relation(fields: [companyId], references: [id])
+  
+  variants              Variant[]
+  salesOrderItems       SalesOrderItem[]
+  boms                  BOM[]
+  routings              Routing[]
+  stockMovements        StockMovement[]
+  productionOrders      ProductionOrder[]
+  finishedGoodsReceipts FinishedGoodsReceipt[]
+  productionBatches     ProductionBatch[]
+  qualityInspections    QualityInspection[]
+  reworkJobs            ReworkJob[]
+  shipmentItems         ShipmentItem[]
+  invoiceItems          InvoiceItem[]
+  product3dModel        Product3DModel?
+  
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+  
+  @@index([companyId])
+  @@index([status])
+  @@index([category])
+  @@index([garmentType])
+  @@unique([sku, companyId])
+  @@unique([productCode, companyId])
+}
+
+model Variant {
+  id                 String   @id @default(uuid())
+  name               String?  @default("")
+  sku                String?
+  color              String?
+  size               String?
+  price              Float?   @default(0)
+  finishedGoodsStock Int?     @default(0)
+  status             String   @default("ACTIVE")
+  
+  productId          String
+  product            Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  
+  companyId          String
+  company            Company  @relation(fields: [companyId], references: [id])
+  
+  salesOrderItems       SalesOrderItem[]
+  stockMovements        StockMovement[]
+  productionOrders      ProductionOrder[]
+  finishedGoodsReceipts FinishedGoodsReceipt[]
+  productionBatches     ProductionBatch[]
+  qualityInspections    QualityInspection[]
+  reworkJobs            ReworkJob[]
+  shipmentItems         ShipmentItem[]
+  invoiceItems          InvoiceItem[]
+  
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+  
+  @@index([companyId])
+  @@index([productId])
+  @@index([status])
+  @@unique([sku, companyId])
+}
+
+model Material {
+  id                String   @id @default(uuid())
+  name              String
+  description       String?
+  materialCode      String?
+  category          String?
+  unit              String?
+  minimumStockLevel Float?   @default(0)
+  currentStock      Float?   @default(0)
+  status            String   @default("ACTIVE")
+  
+  companyId         String
+  company           Company  @relation(fields: [companyId], references: [id])
+  
+  bomItems               BomItem[]
+  purchaseOrderItems     PurchaseOrderItem[]
+  goodsReceiptItems      GoodsReceiptItem[]
+  stockMovements         StockMovement[]
+  productionConsumptions ProductionConsumption[]
+  
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  
+  @@index([companyId])
+  @@unique([materialCode, companyId])
+}
+
+model SalesOrder {
+  id                   String           @id @default(uuid())
+  orderNumber          String
+  customerId           String
+  customer             Customer         @relation(fields: [customerId], references: [id])
+  orderDate            DateTime         @default(now())
+  expectedDeliveryDate DateTime?
+  status               String           @default("DRAFT")
+  priority             String           @default("NORMAL")
+  notes                String?
+  totalAmount          Float            @default(0)
+  
+  companyId            String
+  company              Company          @relation(fields: [companyId], references: [id])
+  
+  items                SalesOrderItem[]
+  productionOrders     ProductionOrder[]
+  shipments            Shipment[]
+  invoices             Invoice[]
+  
+  createdAt            DateTime         @default(now())
+  updatedAt            DateTime         @updatedAt
+
+  @@index([companyId])
+  @@index([customerId])
+  @@unique([orderNumber, companyId])
+}
+
+model SalesOrderItem {
+  id           String     @id @default(uuid())
+  salesOrderId String
+  salesOrder   SalesOrder @relation(fields: [salesOrderId], references: [id], onDelete: Cascade)
+  
+  productId    String
+  product      Product    @relation(fields: [productId], references: [id])
+  
+  variantId    String?
+  variant      Variant?   @relation(fields: [variantId], references: [id])
+  
+  quantity     Int
+  unitPrice    Float
+  totalPrice   Float
+  
+  companyId    String
+  company      Company    @relation(fields: [companyId], references: [id])
+  
+  shipmentItems ShipmentItem[]
+  
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  @@index([salesOrderId])
+  @@index([companyId])
+  @@index([productId])
+  @@index([variantId])
+}
+
+model BOM {
+  id               String            @id @default(uuid())
+  productId        String
+  product          Product           @relation(fields: [productId], references: [id], onDelete: Cascade)
+  version          String
+  name             String
+  description      String?
+  status           String            @default("DRAFT") // DRAFT, ACTIVE, INACTIVE
+  
+  companyId        String
+  company          Company           @relation(fields: [companyId], references: [id])
+  
+  items            BomItem[]
+  productionOrders ProductionOrder[]
+  
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+
+  @@index([companyId])
+  @@index([productId])
+}
+
+model BomItem {
+  id                String   @id @default(uuid())
+  bomId             String
+  bom               BOM      @relation(fields: [bomId], references: [id], onDelete: Cascade)
+  
+  materialId        String
+  material          Material @relation(fields: [materialId], references: [id])
+  
+  quantity          Float
+  unit              String
+  wastagePercentage Float    @default(0)
+  notes             String?
+  
+  companyId         String
+  company           Company  @relation(fields: [companyId], references: [id])
+  
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@index([bomId])
+  @@index([materialId])
+  @@index([companyId])
+}
+
+model Operation {
+  id                String             @id @default(uuid())
+  name              String
+  code              String?
+  description       String?
+  machineType       String?
+  standardTime      Float?
+  status            String             @default("ACTIVE")
+  
+  companyId         String
+  company           Company            @relation(fields: [companyId], references: [id])
+  
+  routingOperations RoutingOperation[]
+  currentBatches    ProductionBatch[]
+  wipLogs           WipLog[]
+  
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+
+  @@index([companyId])
+  @@unique([code, companyId])
+}
+
+model Routing {
+  id               String             @id @default(uuid())
+  productId        String
+  product          Product            @relation(fields: [productId], references: [id], onDelete: Cascade)
+  version          String
+  name             String
+  description      String?
+  status           String             @default("DRAFT") // DRAFT, ACTIVE, INACTIVE
+  
+  companyId        String
+  company          Company            @relation(fields: [companyId], references: [id])
+  
+  operations       RoutingOperation[]
+  productionOrders ProductionOrder[]
+  
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
+
+  @@index([companyId])
+  @@index([productId])
+}
+
+model RoutingOperation {
+  id           String    @id @default(uuid())
+  routingId    String
+  routing      Routing   @relation(fields: [routingId], references: [id], onDelete: Cascade)
+  
+  operationId  String
+  operation    Operation @relation(fields: [operationId], references: [id])
+  
+  sequence     Int
+  machineType  String?
+  standardTime Float?
+  notes        String?
+  
+  companyId    String
+  company      Company   @relation(fields: [companyId], references: [id])
+  
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  @@index([routingId])
+  @@index([operationId])
+  @@index([companyId])
+}
+
+model PurchaseOrder {
+  id                   String              @id @default(uuid())
+  orderNumber          String
+  supplierId           String
+  supplier             Supplier            @relation(fields: [supplierId], references: [id])
+  orderDate            DateTime            @default(now())
+  expectedDeliveryDate DateTime?
+  status               String              @default("DRAFT") // DRAFT, SENT, PARTIALLY_RECEIVED, RECEIVED, CANCELLED
+  priority             String              @default("NORMAL") // LOW, NORMAL, HIGH, URGENT
+  notes                String?
+  
+  companyId            String
+  company              Company             @relation(fields: [companyId], references: [id])
+  
+  items                PurchaseOrderItem[]
+  goodsReceipts        GoodsReceipt[]
+  
+  createdAt            DateTime            @default(now())
+  updatedAt            DateTime            @updatedAt
+
+  @@index([companyId])
+  @@index([supplierId])
+  @@unique([orderNumber, companyId])
+}
+
+model PurchaseOrderItem {
+  id                String             @id @default(uuid())
+  purchaseOrderId   String
+  purchaseOrder     PurchaseOrder      @relation(fields: [purchaseOrderId], references: [id], onDelete: Cascade)
+  
+  materialId        String
+  material          Material           @relation(fields: [materialId], references: [id])
+  
+  quantity          Float
+  unit              String
+  unitPrice         Float
+  totalPrice        Float
+  receivedQuantity  Float              @default(0)
+  
+  companyId         String
+  company           Company            @relation(fields: [companyId], references: [id])
+  
+  goodsReceiptItems GoodsReceiptItem[]
+  
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+
+  @@index([purchaseOrderId])
+  @@index([materialId])
+  @@index([companyId])
+}
+
+model GoodsReceipt {
+  id              String             @id @default(uuid())
+  receiptNumber   String
+  purchaseOrderId String
+  purchaseOrder   PurchaseOrder      @relation(fields: [purchaseOrderId], references: [id])
+  
+  supplierId      String
+  supplier        Supplier           @relation(fields: [supplierId], references: [id])
+  
+  receiptDate     DateTime           @default(now())
+  status          String             @default("RECEIVED") // RECEIVED, INSPECTED, ACCEPTED, REJECTED
+  notes           String?
+  
+  companyId       String
+  company         Company            @relation(fields: [companyId], references: [id])
+  
+  items           GoodsReceiptItem[]
+  
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+
+  @@index([companyId])
+  @@index([purchaseOrderId])
+  @@index([supplierId])
+  @@unique([receiptNumber, companyId])
+}
+
+model GoodsReceiptItem {
+  id                  String            @id @default(uuid())
+  goodsReceiptId      String
+  goodsReceipt        GoodsReceipt      @relation(fields: [goodsReceiptId], references: [id], onDelete: Cascade)
+  
+  purchaseOrderItemId String
+  purchaseOrderItem   PurchaseOrderItem @relation(fields: [purchaseOrderItemId], references: [id])
+  
+  materialId          String
+  material            Material          @relation(fields: [materialId], references: [id])
+  
+  receivedQuantity    Float
+  acceptedQuantity    Float
+  rejectedQuantity    Float
+  unit                String
+  notes               String?
+  
+  companyId           String
+  company             Company           @relation(fields: [companyId], references: [id])
+  
+  createdAt           DateTime          @default(now())
+  updatedAt           DateTime          @updatedAt
+
+  @@index([goodsReceiptId])
+  @@index([purchaseOrderItemId])
+  @@index([materialId])
+  @@index([companyId])
+}
+
+model ProductionBatch {
+  id                 String              @id @default(uuid())
+  batchNumber        String
+  
+  productionOrderId  String
+  productionOrder    ProductionOrder     @relation(fields: [productionOrderId], references: [id], onDelete: Cascade)
+  
+  productId          String
+  product            Product             @relation(fields: [productId], references: [id])
+  
+  variantId          String?
+  variant            Variant?            @relation(fields: [variantId], references: [id])
+  
+  targetQuantity     Int
+  completedQuantity  Int                 @default(0)
+  defectiveQuantity  Int                 @default(0)
+  status             String              @default("PLANNED") // PLANNED, IN_PROGRESS, IN_INSPECTION, COMPLETED, CANCELLED
+  
+  currentOperationId String?
+  currentOperation   Operation?          @relation(fields: [currentOperationId], references: [id])
+  
+  companyId          String
+  company            Company             @relation(fields: [companyId], references: [id])
+  
+  wipLogs            WipLog[]
+  qualityInspections QualityInspection[]
+  reworkJobs         ReworkJob[]
+  
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+
+  @@index([companyId])
+  @@index([productionOrderId])
+  @@index([productId])
+  @@index([variantId])
+  @@index([currentOperationId])
+  @@unique([batchNumber, companyId])
+}
+
+model WipLog {
+  id                String          @id @default(uuid())
+  
+  batchId           String
+  batch             ProductionBatch @relation(fields: [batchId], references: [id], onDelete: Cascade)
+  
+  productionOrderId String
+  productionOrder   ProductionOrder @relation(fields: [productionOrderId], references: [id])
+  
+  operationId       String
+  operation         Operation       @relation(fields: [operationId], references: [id])
+  
+  sequence          Int
+  operatorName      String?
+  machineType       String?
+  completedQuantity Int
+  rejectedQuantity  Int             @default(0)
+  status            String          @default("COMPLETED")
+  notes             String?
+  
+  companyId         String
+  company           Company         @relation(fields: [companyId], references: [id])
+  
+  createdAt         DateTime        @default(now())
+
+  @@index([batchId])
+  @@index([productionOrderId])
+  @@index([operationId])
+  @@index([companyId])
+}
+
+model QualityInspection {
+  id                String           @id @default(uuid())
+  inspectionNumber  String
+  
+  batchId           String?
+  batch             ProductionBatch? @relation(fields: [batchId], references: [id])
+  
+  productionOrderId String
+  productionOrder   ProductionOrder  @relation(fields: [productionOrderId], references: [id])
+  
+  productId         String
+  product           Product          @relation(fields: [productId], references: [id])
+  
+  variantId         String?
+  variant           Variant?         @relation(fields: [variantId], references: [id])
+  
+  inspectorName     String?
+  inspectionType    String           @default("END_LINE") // INLINE, END_LINE, FINAL_AUDIT
+  sampleSize        Int
+  passedQuantity    Int
+  reworkQuantity    Int              @default(0)
+  rejectedQuantity  Int              @default(0)
+  defectType        String?          // Broken Stitch, Fabric Stain, Measurement Error, Button Defect, Other
+  result            String           @default("PASS") // PASS, FAIL, REWORK_REQUIRED
+  notes             String?
+  
+  companyId         String
+  company           Company          @relation(fields: [companyId], references: [id])
+  
+  createdAt         DateTime         @default(now())
+
+  reworkJobs        ReworkJob[]
+
+  @@index([batchId])
+  @@index([productionOrderId])
+  @@index([productId])
+  @@index([companyId])
+  @@unique([inspectionNumber, companyId])
+}
+
+
+model StockMovement {
+  id             String    @id @default(uuid())
+  movementNumber String
+  
+  materialId     String?
+  material       Material? @relation(fields: [materialId], references: [id])
+  
+  productId      String?
+  product        Product?  @relation(fields: [productId], references: [id])
+  
+  variantId      String?
+  variant        Variant?  @relation(fields: [variantId], references: [id])
+  
+  type           String    // INWARD_GRN, PRODUCTION_ISSUE, PRODUCTION_RETURN, FINISHED_GOODS, SCRAP_WASTAGE, ADJUSTMENT
+  quantity       Float
+  unit           String
+  
+  referenceType  String?   // GOODS_RECEIPT, PRODUCTION_ORDER, ADJUSTMENT
+  referenceId    String?
+  notes          String?
+  
+  companyId      String
+  company        Company   @relation(fields: [companyId], references: [id])
+  
+  createdAt      DateTime  @default(now())
+
+  @@index([companyId])
+  @@index([materialId])
+  @@index([productId])
+  @@index([variantId])
+}
+
+model ProductionOrder {
+  id                String                  @id @default(uuid())
+  orderNumber       String
+  
+  productId         String
+  product           Product                 @relation(fields: [productId], references: [id])
+  
+  variantId         String?
+  variant           Variant?                @relation(fields: [variantId], references: [id])
+  
+  bomId             String?
+  bom               BOM?                    @relation(fields: [bomId], references: [id])
+  
+  routingId         String?
+  routing           Routing?                @relation(fields: [routingId], references: [id])
+  
+  salesOrderId      String?
+  salesOrder        SalesOrder?             @relation(fields: [salesOrderId], references: [id])
+  
+  targetQuantity    Int
+  completedQuantity Int                     @default(0)
+  scrapQuantity     Int                     @default(0)
+  status            String                  @default("PLANNED") // PLANNED, IN_PROGRESS, COMPLETED, CANCELLED
+  
+  startDate         DateTime?
+  dueDate           DateTime?
+  completedDate     DateTime?
+  notes             String?
+  
+  companyId         String
+  company           Company                 @relation(fields: [companyId], references: [id])
+  
+  consumptions      ProductionConsumption[]
+  finishedGoods     FinishedGoodsReceipt[]
+  batches           ProductionBatch[]
+  wipLogs           WipLog[]
+  qualityInspections QualityInspection[]
+  reworkJobs        ReworkJob[]
+  
+  createdAt         DateTime                @default(now())
+  updatedAt         DateTime                @updatedAt
+
+  @@index([companyId])
+  @@index([productId])
+  @@index([variantId])
+  @@index([salesOrderId])
+  @@unique([orderNumber, companyId])
+}
+
+model ProductionConsumption {
+  id                String          @id @default(uuid())
+  productionOrderId String
+  productionOrder   ProductionOrder @relation(fields: [productionOrderId], references: [id], onDelete: Cascade)
+  
+  materialId        String
+  material          Material        @relation(fields: [materialId], references: [id])
+  
+  quantity          Float
+  unit              String
+  wastageQuantity   Float           @default(0)
+  notes             String?
+  
+  companyId         String
+  company           Company         @relation(fields: [companyId], references: [id])
+  
+  createdAt         DateTime        @default(now())
+
+  @@index([productionOrderId])
+  @@index([materialId])
+  @@index([companyId])
+}
+
+model FinishedGoodsReceipt {
+  id                String          @id @default(uuid())
+  receiptNumber     String
+  
+  productionOrderId String
+  productionOrder   ProductionOrder @relation(fields: [productionOrderId], references: [id], onDelete: Cascade)
+  
+  productId         String
+  product           Product         @relation(fields: [productId], references: [id])
+  
+  variantId         String?
+  variant           Variant?        @relation(fields: [variantId], references: [id])
+  
+  quantity          Int
+  notes             String?
+  
+  companyId         String
+  company           Company         @relation(fields: [companyId], references: [id])
+  
+  createdAt         DateTime        @default(now())
+
+  @@index([productionOrderId])
+  @@index([productId])
+  @@index([variantId])
+  @@index([companyId])
+  @@unique([receiptNumber, companyId])
+}
+
+model ReworkJob {
+  id                String            @id @default(uuid())
+  reworkNumber      String
+  
+  inspectionId      String?
+  inspection        QualityInspection? @relation(fields: [inspectionId], references: [id])
+  
+  batchId           String?
+  batch             ProductionBatch?  @relation(fields: [batchId], references: [id])
+  
+  productionOrderId String
+  productionOrder   ProductionOrder   @relation(fields: [productionOrderId], references: [id])
+  
+  productId         String
+  product           Product           @relation(fields: [productId], references: [id])
+  
+  variantId         String?
+  variant           Variant?          @relation(fields: [variantId], references: [id])
+  
+  quantity          Int
+  reworkedQuantity  Int               @default(0)
+  scrapQuantity     Int               @default(0)
+  defectType        String?
+  status            String            @default("PENDING_REWORK") // PENDING_REWORK, IN_REWORK, REINSPECTED, SCRAPPED
+  reworkNotes       String?
+  
+  companyId         String
+  company           Company           @relation(fields: [companyId], references: [id])
+  
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+
+  @@index([inspectionId])
+  @@index([batchId])
+  @@index([productionOrderId])
+  @@index([productId])
+  @@index([companyId])
+  @@unique([reworkNumber, companyId])
+}
+
+model Shipment {
+  id                   String         @id @default(uuid())
+  shipmentNumber       String
+  salesOrderId         String
+  salesOrder           SalesOrder     @relation(fields: [salesOrderId], references: [id])
+  customerId           String
+  customer             Customer       @relation(fields: [customerId], references: [id])
+  warehouseId          String?
+  shipmentDate         DateTime       @default(now())
+  expectedDeliveryDate DateTime?
+  actualDeliveryDate   DateTime?
+  status               String         @default("DRAFT") // DRAFT, READY, DISPATCHED, IN_TRANSIT, DELIVERED, CANCELLED
+  trackingNumber       String?
+  carrier              String?
+  shippingAddress      String?
+  notes                String?
+  
+  companyId            String
+  company              Company        @relation(fields: [companyId], references: [id])
+  
+  items                ShipmentItem[]
+  invoices             Invoice[]
+  
+  createdAt            DateTime       @default(now())
+  updatedAt            DateTime       @updatedAt
+
+  @@index([companyId])
+  @@index([salesOrderId])
+  @@index([customerId])
+  @@unique([shipmentNumber, companyId])
+}
+
+model ShipmentItem {
+  id               String         @id @default(uuid())
+  shipmentId       String
+  shipment         Shipment       @relation(fields: [shipmentId], references: [id], onDelete: Cascade)
+  
+  salesOrderItemId String
+  salesOrderItem   SalesOrderItem @relation(fields: [salesOrderItemId], references: [id])
+  
+  productId        String
+  product          Product        @relation(fields: [productId], references: [id])
+  
+  variantId        String?
+  variant          Variant?       @relation(fields: [variantId], references: [id])
+  
+  quantity         Int
+  unit             String         @default("Pcs")
+  
+  companyId        String
+  company          Company        @relation(fields: [companyId], references: [id])
+  
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+
+  @@index([shipmentId])
+  @@index([salesOrderItemId])
+  @@index([productId])
+  @@index([variantId])
+  @@index([companyId])
+}
+
+model Invoice {
+  id                   String        @id @default(uuid())
+  invoiceNumber        String
+  customerId           String
+  customer             Customer      @relation(fields: [customerId], references: [id])
+  
+  salesOrderId         String?
+  salesOrder           SalesOrder?   @relation(fields: [salesOrderId], references: [id])
+  
+  shipmentId           String?
+  shipment             Shipment?     @relation(fields: [shipmentId], references: [id])
+  
+  invoiceDate          DateTime      @default(now())
+  dueDate              DateTime?
+  
+  subtotal             Float         @default(0)
+  taxAmount            Float         @default(0)
+  discountAmount       Float         @default(0)
+  totalAmount          Float         @default(0)
+  paidAmount           Float         @default(0)
+  balanceAmount        Float         @default(0)
+  
+  status               String        @default("DRAFT") // DRAFT, ISSUED, PARTIALLY_PAID, PAID, OVERDUE, CANCELLED
+  notes                String?
+  
+  companyId            String
+  company              Company       @relation(fields: [companyId], references: [id])
+  
+  items                InvoiceItem[]
+  payments             Payment[]
+  
+  createdAt            DateTime      @default(now())
+  updatedAt            DateTime      @updatedAt
+
+  @@index([companyId])
+  @@index([customerId])
+  @@index([salesOrderId])
+  @@index([shipmentId])
+  @@unique([invoiceNumber, companyId])
+}
+
+model InvoiceItem {
+  id          String    @id @default(uuid())
+  invoiceId   String
+  invoice     Invoice   @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  
+  productId   String?
+  product     Product?  @relation(fields: [productId], references: [id])
+  
+  variantId   String?
+  variant     Variant?  @relation(fields: [variantId], references: [id])
+  
+  description String
+  quantity    Float     @default(1)
+  unitPrice   Float     @default(0)
+  taxRate     Float     @default(0)
+  discount    Float     @default(0)
+  total       Float     @default(0)
+  
+  companyId   String
+  company     Company   @relation(fields: [companyId], references: [id])
+  
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([invoiceId])
+  @@index([productId])
+  @@index([variantId])
+  @@index([companyId])
+}
+
+model Payment {
+  id              String   @id @default(uuid())
+  paymentNumber   String
+  
+  invoiceId       String
+  invoice         Invoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  
+  customerId      String
+  customer        Customer @relation(fields: [customerId], references: [id])
+  
+  amount          Float
+  paymentDate     DateTime @default(now())
+  paymentMethod   String   // CASH, BANK_TRANSFER, UPI, CARD, CHEQUE, OTHER
+  referenceNumber String?
+  status          String   @default("COMPLETED") // PENDING, COMPLETED, FAILED, REFUNDED
+  notes           String?
+  
+  razorpayOrderId   String?  @unique
+  razorpayPaymentId String?  @unique
+  razorpaySignature String?
+  paymentGateway    String   @default("MANUAL") // MANUAL, RAZORPAY
+  gatewayStatus     String?  // CREATED, AUTHORIZED, CAPTURED, FAILED, REFUNDED
+
+  companyId       String
+  company         Company  @relation(fields: [companyId], references: [id])
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([invoiceId])
+  @@index([customerId])
+  @@index([companyId])
+  @@index([razorpayOrderId])
+  @@index([razorpayPaymentId])
+  @@unique([paymentNumber, companyId])
+}
+
+model Expense {
+  id              String    @id @default(uuid())
+  expenseNumber   String
+  category        String    // RAW_MATERIAL, TRANSPORT, ELECTRICITY, MAINTENANCE, SALARY, PACKAGING, RENT, UTILITIES, OTHER
+  description     String
+  amount          Float
+  expenseDate     DateTime  @default(now())
+  paymentMethod   String    @default("BANK_TRANSFER")
+  
+  supplierId      String?
+  supplier        Supplier? @relation(fields: [supplierId], references: [id])
+  
+  referenceNumber String?
+  status          String    @default("PENDING") // PENDING, APPROVED, PAID, CANCELLED
+  notes           String?
+  
+  companyId       String
+  company         Company   @relation(fields: [companyId], references: [id])
+  
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@index([supplierId])
+  @@index([companyId])
+  @@unique([expenseNumber, companyId])
+}
+
+model Attendance {
+  id          String    @id @default(uuid())
+  employeeId  String
+  employee    Employee  @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  date        DateTime
+  checkIn     DateTime?
+  checkOut    DateTime?
+  status      String    @default("PRESENT") // PRESENT, ABSENT, HALF_DAY, LEAVE, LATE
+  remarks     String?
+  
+  companyId   String
+  company     Company   @relation(fields: [companyId], references: [id])
+  
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([employeeId])
+  @@index([companyId])
+  @@unique([employeeId, date])
+}
+
+model Payroll {
+  id          String    @id @default(uuid())
+  employeeId  String
+  employee    Employee  @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  month       Int
+  year        Int
+  basicSalary Float     @default(0)
+  allowances  Float     @default(0)
+  deductions  Float     @default(0)
+  overtime    Float     @default(0)
+  netSalary   Float     @default(0)
+  paymentDate DateTime?
+  status      String    @default("DRAFT") // DRAFT, PROCESSED, PAID
+  notes       String?
+  
+  companyId   String
+  company     Company   @relation(fields: [companyId], references: [id])
+  
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([employeeId])
+  @@index([companyId])
+  @@unique([employeeId, month, year])
+}
+
+model MaintenanceRecord {
+  id              String    @id @default(uuid())
+  machineName     String
+  machineCode     String
+  maintenanceType String    // PREVENTIVE, CORRECTIVE, EMERGENCY
+  description     String
+  scheduledDate   DateTime
+  completedDate   DateTime?
+  technician      String
+  cost            Float     @default(0)
+  status          String    @default("SCHEDULED") // SCHEDULED, IN_PROGRESS, COMPLETED, CANCELLED
+  notes           String?
+  
+  companyId       String
+  company         Company   @relation(fields: [companyId], references: [id])
+  
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@index([companyId])
+}
+
+model Product3DModel {
+  id           String   @id @default(uuid())
+  productId    String   @unique
+  product      Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  modelUrl     String
+  thumbnailUrl String?
+  defaultColor String?  @default("#1e293b")
+  scale        Float    @default(1.0)
+  status       String   @default("ACTIVE")
+  
+  companyId    String
+  company      Company  @relation(fields: [companyId], references: [id])
+  
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([companyId])
+  @@index([productId])
+}
+
+model Warehouse {
+  id          String   @id @default(uuid())
+  code        String
+  name        String
+  location    String?
+  type        String   @default("RAW_MATERIALS") // RAW_MATERIALS, FINISHED_GOODS, TRANSIT
+  status      String   @default("ACTIVE")
+  companyId   String
+  company     Company  @relation(fields: [companyId], references: [id])
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([code, companyId])
+  @@index([companyId])
+}
+
+model Department {
+  id               String           @id @default(uuid())
+  name             String
+  code             String           // ADMINISTRATION, SALES, DESIGN, PROCUREMENT, INVENTORY, PLANNING, PRODUCTION, QUALITY, DISPATCH, FINANCE, HR, MAINTENANCE
+  description      String?
+  departmentHeadId String?
+  departmentHead   Employee?        @relation("DepartmentHead", fields: [departmentHeadId], references: [id])
+  isActive         Boolean          @default(true)
+
+  companyId        String
+  company          Company          @relation(fields: [companyId], references: [id])
+
+  users            UserDepartment[]
+  employees        Employee[]       @relation("EmployeeDepartment")
+  auditLogs        AuditLog[]
+
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+
+  @@unique([code, companyId])
+  @@index([companyId])
+  @@index([isActive])
+}
+
+model UserDepartment {
+  id           String     @id @default(uuid())
+  userId       String
+  user         User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  departmentId String
+  department   Department @relation(fields: [departmentId], references: [id], onDelete: Cascade)
+  role         String     @default("OPERATOR") // SUPER_ADMIN, ADMIN, DEPARTMENT_HEAD, MANAGER, SUPERVISOR, OPERATOR
+  isPrimary    Boolean    @default(false)
+
+  companyId    String
+  company      Company    @relation(fields: [companyId], references: [id])
+
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  @@unique([userId, departmentId])
+  @@index([userId])
+  @@index([departmentId])
+  @@index([companyId])
+}
+
+model RolePermission {
+  id             String   @id @default(uuid())
+  roleName       String   // SUPER_ADMIN, ADMIN, DEPARTMENT_HEAD, MANAGER, SUPERVISOR, OPERATOR
+  departmentCode String   // e.g. "ALL" or "ADMINISTRATION", "SALES", etc.
+  resource       String   // e.g. "all", "users", "departments", "orders", "inventory", etc.
+  action         String   // VIEW, CREATE, UPDATE, DELETE, APPROVE, EXPORT, MANAGE_USERS, MANAGE_SETTINGS
+  isAllowed      Boolean  @default(true)
+
+  companyId      String
+  company        Company  @relation(fields: [companyId], references: [id])
+
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@unique([roleName, departmentCode, resource, action, companyId])
+  @@index([companyId])
+  @@index([roleName])
+}
+
+model AuditLog {
+  id             String      @id @default(uuid())
+  userId         String?
+  userEmail      String?
+  userName       String?
+  user           User?       @relation(fields: [userId], references: [id], onDelete: SetNull)
+  departmentId   String?
+  department     Department? @relation(fields: [departmentId], references: [id], onDelete: SetNull)
+  departmentCode String?
+  action         String      // CREATE, UPDATE, DELETE, APPROVE, LOGIN, LOGOUT, PASSWORD_RESET, REVOKE_SESSION, STATUS_CHANGE
+  entity         String      // User, Department, Role, Settings, SalesOrder, etc.
+  entityId       String?
+  details        String?     // Sanitized JSON payload (no secrets)
+  ipAddress      String?
+  userAgent      String?
+
+  companyId      String
+  company        Company     @relation(fields: [companyId], references: [id])
+
+  createdAt      DateTime    @default(now())
+
+  @@index([companyId])
+  @@index([userId])
+  @@index([departmentId])
+  @@index([entity, entityId])
+  @@index([createdAt])
+}
+
+model UserSession {
+  id             String   @id @default(uuid())
+  userId         String
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash      String?
+  ipAddress      String?
+  userAgent      String?
+  departmentCode String?
+  isActive       Boolean  @default(true)
+  expiresAt      DateTime
+  lastActiveAt   DateTime @default(now())
+
+  companyId      String
+  company        Company  @relation(fields: [companyId], references: [id])
+
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([userId])
+  @@index([companyId])
+  @@index([isActive])
+}
+
+model CompanySetting {
+  id        String   @id @default(uuid())
+  key       String
+  value     String
+  category  String   @default("GENERAL") // GENERAL, SECURITY, WORKFLOW, NOTIFICATION
+  companyId String
+  company   Company  @relation(fields: [companyId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([key, companyId])
+  @@index([companyId])
+}
+
+
+
+
